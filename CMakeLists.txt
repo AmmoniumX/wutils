@@ -16,12 +16,22 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
 
+# Scan for modules
+set(CMAKE_CXX_SCAN_FOR_MODULES ON)
+
+# Add compiler-specific flags
 # Do NOT set CMAKE_CXX_FLAGS for modules
 # CMake will handle module compilation flags automatically
 # Only set these for non-module targets
-set(COMMON_FLAGS "-Wall -Wextra -march=native")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "/W4 /WX /EHsc /utf-8")
+    set(CMAKE_CXX_FLAGS_DEBUG "/Od /Zi")
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2")
+elseif(UNIX)
+    set(CMAKE_CXX_FLAGS "-Wall -Wextra -march=native")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+endif()
 
 # Add doctest
 include(FetchContent)
