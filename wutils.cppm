@@ -6,13 +6,15 @@ module;
 #include <string_view>
 #include <iostream>
 
-#if __cpp_lib_ranges_to_container >= 202202L || __cpp_lib_containers_ranges > 202202L
-import <ranges>;
-#endif
+#include "wutils_internal.hpp"
 
 export module wutils;
 
 export namespace wutils {
+
+// Export types and enums from wutils_internal.hpp
+using ::wutils::ErrorPolicy;
+using ::wutils::ConversionResult;
 
 inline constexpr bool wchar_is_char8 =
     sizeof(wchar_t) ==
@@ -39,41 +41,11 @@ static_assert(sizeof(wchar_t) == sizeof(ustring::value_type) &&
                   sizeof(wchar_t) == sizeof(ustring_view::value_type),
               "Invalid wchar_t deduction");
 
-#ifdef _WIN32
-void wcout(const std::wstring_view ws);
-void wcerr(const std::wstring_view ws);
-#else
-inline void wcout(const std::wstring_view ws) { std::wcout << ws; }
-inline void wcerr(const std::wstring_view ws) { std::wcerr << ws << std::endl; }
-#endif
-
-inline void wprint(const std::wstring_view ws) { wcout(ws); }
-inline void wprintln(const std::wstring_view ws) {
-  wcout(ws);
-  wcout(L"\n");
-}
-
-enum class ErrorPolicy {
-  UseReplacementCharacter,
-  SkipInvalidValues,
-  StopOnFirstError
-};
-
-template <typename T> struct ConversionResult {
-  T value;
-  bool is_valid;
-
-  T &operator*() { return value; }
-  T *operator->() { return &value; }
-  const T *operator->() const { return &value; }
-  explicit operator bool() const { return is_valid; }
-};
-
 namespace detail {
-
-inline constexpr const char8_t *REPLACEMENT_CHAR_8 = u8"�";
-inline constexpr const char16_t REPLACEMENT_CHAR_16 = u'�';
-inline constexpr const char32_t REPLACEMENT_CHAR_32 = U'�';
+// Export replacement character constants
+using ::wutils::detail::REPLACEMENT_CHAR_8;
+using ::wutils::detail::REPLACEMENT_CHAR_16;
+using ::wutils::detail::REPLACEMENT_CHAR_32;
 
 template <typename T, template <typename...> class C>
 struct instantiation_of_impl : std::false_type {};
@@ -113,45 +85,6 @@ template <> struct implicit_conversion<uchar_t, wchar_t> : std::true_type {};
 template <typename CharT>
 struct implicit_conversion<CharT, CharT> : std::true_type {};
 
-// ===== Specialized Conversions =====
-inline ConversionResult<std::u8string>
-u8(const std::u8string_view u8s,
-   [[maybe_unused]] const ErrorPolicy errorPolicy =
-       ErrorPolicy::UseReplacementCharacter) {
-  return {std::u8string(u8s), true};
-}
-ConversionResult<std::u8string>
-u8(const std::u16string_view u16s,
-   const ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter);
-ConversionResult<std::u8string>
-u8(const std::u32string_view u32s,
-   const ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter);
-
-ConversionResult<std::u16string>
-u16(const std::u8string_view u8s,
-    const ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter);
-inline ConversionResult<std::u16string>
-u16(const std::u16string_view u16s,
-    [[maybe_unused]] const ErrorPolicy errorPolicy =
-        ErrorPolicy::UseReplacementCharacter) {
-  return {std::u16string(u16s), true};
-}
-ConversionResult<std::u16string>
-u16(const std::u32string_view u32s,
-    const ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter);
-
-ConversionResult<std::u32string>
-u32(const std::u8string_view u8s,
-    const ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter);
-ConversionResult<std::u32string>
-u32(const std::u16string_view u16s,
-    const ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter);
-inline ConversionResult<std::u32string>
-u32(const std::u32string_view u32s,
-    [[maybe_unused]] const ErrorPolicy errorPolicy =
-        ErrorPolicy::UseReplacementCharacter) {
-  return {std::u32string(u32s), true};
-}
 
 template <typename From, typename To>
 inline constexpr bool is_implicitly_convertible =
@@ -165,23 +98,10 @@ To convert_implicitly(From from) {
                                typename To::value_type>) {
     return To(from);
   } else {
-#if defined(_MSC_VER) && (__cpp_lib_containers_ranges > 202202L)
-    return To(std::from_range, from);
-#elif __cpp_lib_ranges_to_container >= 202202L
-    return from |
-           std::ranges::views::transform([](typename From::value_type wc) {
-             return static_cast<typename To::value_type>(wc);
-           }) |
-           std::ranges::to<To>();
-#else
-    // C++20 fallback without ranges
-    To out;
-    out.reserve(from.size());
-    for (auto it = from.cbegin(); it != from.cend(); ++it) {
-      out.push_back(static_cast<typename To::value_type>(*it));
-    }
-    return out;
-#endif
+
+    // Since both are character types, reinterpreting between both pointer types
+    // is valid under strict aliasing rules
+    return To(reinterpret_cast<typename To::const_pointer>(from.data()), from.length());
   }
 };
 } // namespace detail
@@ -318,9 +238,8 @@ s(From from, ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
   return convert<From, std::string>(from, errorPolicy);
 }
 
-int uswidth(const std::u8string_view u8s);
-int uswidth(const std::u16string_view u16s);
-int uswidth(const std::u32string_view u32s);
+// Export uswidth overloads
+using ::wutils::uswidth;
 
 inline int wswidth(const std::wstring_view ws) {
   ustring u = ws_to_us(ws);

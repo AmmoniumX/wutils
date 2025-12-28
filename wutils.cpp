@@ -65,11 +65,6 @@
  *
  * Latest version: http://www.cl.cam.ac.uk/~mgk25/ucs/wcwidth.c
  */
-
-#ifdef WUTILS_MODULE
-module;
-#endif
-
 #include <cstddef>
 
 #include <stdint.h>
@@ -79,16 +74,9 @@ module;
 #include <string>
 #include <string_view>
 
-#ifndef WUTILS_MODULE
-#include "wutils.hpp"
-#endif
-
+#include "wutils_internal.hpp"
 #ifdef _WIN32
 #include <Windows.h>
-#endif
-
-#ifdef WUTILS_MODULE
-module wutils;
 #endif
 
 using std::size_t;
@@ -404,13 +392,13 @@ int wutils::uswidth(const std::u32string_view u32s) {
 
 int wutils::uswidth(const std::u16string_view u16s) {
   wutils::ConversionResult<std::u32string> u32s =
-      wutils::u32s(u16s, wutils::ErrorPolicy::SkipInvalidValues);
+      wutils::detail::u32(u16s, wutils::ErrorPolicy::SkipInvalidValues);
   return internal::mk_wcswidth(u32s->data(), u32s->size());
 }
 
 int wutils::uswidth(const std::u8string_view u8s) {
   wutils::ConversionResult<std::u32string> u32s =
-      wutils::u32s(u8s, wutils::ErrorPolicy::SkipInvalidValues);
+      wutils::detail::u32(u8s, wutils::ErrorPolicy::SkipInvalidValues);
   return internal::mk_wcswidth(u32s->data(), u32s->size());
 }
 
