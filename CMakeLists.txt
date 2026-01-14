@@ -29,8 +29,9 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "/O2")
 elseif(UNIX)
     set(CMAKE_CXX_FLAGS "-Wall -Wextra -march=native")
-    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+    set(CMAKE_CXX_FLAGS_DEBUG "-O2 -g -fsanitize=address -fsanitize=undefined")
+    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "-fsanitize=address -fsanitize=undefined")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 endif()
 
 # Add doctest
