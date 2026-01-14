@@ -42,5 +42,7 @@
 
 .cache/
 build/
+build-debug/
 /cpm_modules/
 /cmake/
+compile_commands.json
