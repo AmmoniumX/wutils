@@ -332,8 +332,9 @@ int mk_wcswidth(const char32_t *pwcs, size_t n) {
     char32_t base_char = *p;
     int char_width = mk_wcwidth(base_char);
 
+    // Control characters are displayed as ^X (2 characters wide)
     if (char_width < 0)
-      return -1;
+      char_width = 2;
 
     // Check if this is the start of an emoji sequence
     bool is_emoji = (base_char >= 0x1F000 && base_char <= 0x1FAFF) ||
