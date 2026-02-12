@@ -35,13 +35,7 @@ elseif(UNIX)
 endif()
 
 # Add doctest
-include(FetchContent)
-FetchContent_Declare(
-  doctest
-  GIT_REPOSITORY https://github.com/doctest/doctest.git
-  GIT_TAG master
-)
-FetchContent_MakeAvailable(doctest)
+add_subdirectory(doctest)
 
 # DON'T add custom compile options to module targets
 # Let CMake handle it
