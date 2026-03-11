@@ -14,6 +14,9 @@ namespace wutils {
 #ifndef _WIN32
 inline void wcout(const std::wstring_view ws) { std::wcout << ws; }
 inline void wcerr(const std::wstring_view ws) { std::wcerr << ws; }
+#else
+void wcout(const std::wstring_view ws);
+void wcerr(const std::wstring_view ws);
 #endif
 
 inline void wprint(const std::wstring_view ws) { wcout(ws); }
