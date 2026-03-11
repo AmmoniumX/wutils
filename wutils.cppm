@@ -11,6 +11,21 @@ module;
 export module wutils;
 
 export namespace wutils {
+// Windows sucks and can't properly print std::wcout to terminal so we use a
+// wrapper
+#ifdef _WIN32
+void wcout(const std::wstring_view ws);
+void wcerr(const std::wstring_view ws);
+#else
+inline void wcout(const std::wstring_view ws) { std::wcout << ws; }
+inline void wcerr(const std::wstring_view ws) { std::wcerr << ws; }
+#endif
+
+inline void wprint(const std::wstring_view ws) { wcout(ws); }
+inline void wprintln(const std::wstring_view ws) {
+  wcout(ws);
+  wcout(L"\n");
+}
 
 // Export types and enums from wutils_internal.hpp
 using ::wutils::ErrorPolicy;
