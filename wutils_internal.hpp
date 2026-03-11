@@ -4,6 +4,13 @@
 
 namespace wutils {
 
+// Windows sucks and can't properly print std::wcout to terminal so we use a
+// wrapper
+#ifdef _WIN32
+void wcout(const std::wstring_view ws);
+void wcerr(const std::wstring_view ws);
+#endif
+
 // Determines course of action when encountered with an invalid sequence
 enum class ErrorPolicy {
   UseReplacementCharacter, // Insert replacement character '�' on error

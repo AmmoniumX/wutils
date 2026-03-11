@@ -11,14 +11,13 @@ module;
 export module wutils;
 
 export namespace wutils {
-// Windows sucks and can't properly print std::wcout to terminal so we use a
-// wrapper
-#ifdef _WIN32
-void wcout(const std::wstring_view ws);
-void wcerr(const std::wstring_view ws);
-#else
+// Define inline wcout/wcerr if not on windows
+#ifndef _WIN32
 inline void wcout(const std::wstring_view ws) { std::wcout << ws; }
 inline void wcerr(const std::wstring_view ws) { std::wcerr << ws; }
+#else
+using ::wutils::wcout;
+using ::wutils::wcerr;
 #endif
 
 inline void wprint(const std::wstring_view ws) { wcout(ws); }
