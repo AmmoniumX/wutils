@@ -61,6 +61,11 @@ template <typename T, template <typename...> class... Cs>
 concept instantiation_of_one_of = (... or instantiation_of<T, Cs>);
 
 template <typename T>
+concept is_unicode_char =
+    std::is_same_v<T, char8_t> || std::is_same_v<T, char16_t> ||
+    std::is_same_v<T, char32_t>;
+
+template <typename T>
 concept BasicString = instantiation_of<T, std::basic_string>;
 
 template <typename T>
@@ -68,9 +73,12 @@ concept BasicStringView =
     instantiation_of_one_of<T, std::basic_string, std::basic_string_view>;
 
 template <typename T>
-concept is_unicode_char =
-    std::is_same_v<T, char8_t> || std::is_same_v<T, char16_t> ||
-    std::is_same_v<T, char32_t>;
+concept UnicodeString =
+    BasicString<T> && is_unicode_char<typename T::value_type>;
+
+template <typename T>
+concept UnicodeStringView =
+    BasicStringView<T> && is_unicode_char<typename T::value_type>;
 
 // ===== Implicit Conversions =====
 template <typename FromChar, typename ToChar>
@@ -108,6 +116,7 @@ To convert_implicitly(From from) {
 
 } // namespace detail
 using detail::BasicString, detail::BasicStringView;
+using detail::UnicodeString, detail::UnicodeStringView;
 
 // "Dispatch" our functions based on conversion type //
 
@@ -121,12 +130,10 @@ inline ConversionResult<To> convert(From from,
   return {detail::convert_implicitly<From, To>(from), true};
 }
 
-// OVERLOAD 2: The "Unicode Kernel." Both types are different Unicode formats.
-template <BasicStringView From, BasicString To>
+// OVERLOAD 2: The Unicode "core". Both types are different Unicode strings.
+template <UnicodeStringView From, UnicodeString To>
   requires(!detail::is_implicitly_convertible<typename From::value_type,
-                                              typename To::value_type> &&
-           detail::is_unicode_char<typename From::value_type> &&
-           detail::is_unicode_char<typename To::value_type>)
+                                              typename To::value_type>)
 inline ConversionResult<To>
 convert(From from,
         ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
@@ -161,10 +168,9 @@ convert(From from,
 }
 
 // OVERLOAD 4: Exit point. Source is Unicode, destination is not.
-template <BasicStringView From, BasicString To>
+template <UnicodeStringView From, BasicString To>
   requires(!detail::is_implicitly_convertible<typename From::value_type,
                                               typename To::value_type> &&
-           detail::is_unicode_char<typename From::value_type> &&
            !detail::is_unicode_char<typename To::value_type>)
 inline ConversionResult<To>
 convert(From from,
