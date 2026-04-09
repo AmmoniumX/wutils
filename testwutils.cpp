@@ -34,8 +34,8 @@ std::array test_data{InputData{13, u8"Hello, World!"},
                      InputData{6, u8"𪚥𪆷𪃹"},
                      InputData{6, u8"𪜈𪜋𪜌"},
                      InputData{7, u8"اَلْعَرَبِيَّةُ"},
-                     InputData{2, u8"\x04"},
-                     InputData{4, u8"\x04\x05"}};
+                     InputData{0, u8"\x04"},      // End of Transmission (EOT)
+                     InputData{0, u8"\x04\x05"}}; // EOT + Enquiry (ENQ)
 
 TEST_CASE("Width calculation") {
   for (const auto &[width, text] : test_data) {
