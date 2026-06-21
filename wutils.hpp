@@ -25,12 +25,12 @@ inline void wprintln(const std::wstring_view ws) {
   wcout(L"\n");
 }
 
-static constexpr bool wchar_is_char8 =
+inline constexpr bool wchar_is_char8 =
     sizeof(wchar_t) ==
     sizeof(char8_t); // not used anywhere afaik but still here for completion
-static constexpr bool wchar_is_char16 =
+inline constexpr bool wchar_is_char16 =
     sizeof(wchar_t) == sizeof(char16_t); // used on Windows
-static constexpr bool wchar_is_char32 =
+inline constexpr bool wchar_is_char32 =
     sizeof(wchar_t) ==
     sizeof(char32_t); // used on Linux, MacOS, and most UNIX systems
 
