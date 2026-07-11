@@ -1,5 +1,7 @@
 #include <cassert>
+#include <iostream>
 #include <string>
+#include <string_view>
 
 #ifdef WUTILS_MODULE
 import wutils;
@@ -37,6 +39,17 @@ int main() {
   if (conv) {
     do_something_u32(*conv);
   }
+
+  // You can also use wutils::string, which is a wrapper around std::string that
+  // handles all conversions automatically
+  wutils::string s = wutils::string("Hello, World");
+  do_something(std::u8string(s));
+  do_something(std::u16string(s));
+  do_something(std::u32string(s));
+  std::string s_out = std::string(s);
+  std::cout << s_out << std::endl;
+  std::wstring ws_out = std::wstring(s);
+  wutils::wprintln(ws_out);
 
   // Bonus, cross-platform wchar column width function, based on the "East
   // Asian Width" property of unicode characters

@@ -55,4 +55,7 @@ using ::wutils::ws;
 using ::wutils::uswidth;
 using ::wutils::wswidth;
 
+// Wrapper string
+using ::wutils::string;
+
 } // namespace wutils

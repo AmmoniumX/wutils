@@ -81,6 +81,28 @@ TEST_CASE("String conversions") {
       REQUIRE(u8s_from_s);
       CHECK(*u8s_from_s == u8s);
     }
+
+    SUBCASE(("Testing implicit conversions with wutils::string for:" +
+             std::string(u8s.begin(), u8s.end()))
+                .c_str()) {
+
+      wutils::string wstr(u8s);
+
+      auto u8 = wutils::u8s(wstr);
+      REQUIRE(u8);
+      CHECK(*u8 == u8s);
+      CHECK(wutils::uswidth(*u8) == width);
+
+      auto u16 = wutils::u16s(wstr);
+      REQUIRE(u16);
+      CHECK(u16 == wutils::u16s(u8s));
+      CHECK(wutils::uswidth(*u16) == width);
+
+      auto u32 = wutils::u32s(wstr);
+      REQUIRE(u32);
+      CHECK(u32 == wutils::u32s(u8s));
+      CHECK(wutils::uswidth(*u32) == width);
+    }
   }
 }
 

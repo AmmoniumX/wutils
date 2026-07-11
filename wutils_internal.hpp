@@ -27,6 +27,13 @@ template <typename T> struct ConversionResult {
   T *operator->() { return &value; }
   const T *operator->() const { return &value; }
   explicit operator bool() const { return is_valid; }
+
+  friend bool operator==(const ConversionResult &,
+                         const ConversionResult &) = default;
+
+  friend bool operator==(const ConversionResult &lhs, const T &rhs) {
+    return lhs.value == rhs;
+  }
 };
 namespace detail {
 

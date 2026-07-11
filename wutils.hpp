@@ -265,4 +265,83 @@ inline int wswidth(const std::wstring_view ws) {
   return wutils::uswidth(u);
 }
 
+// Simple string class, wrapper over u8string, converts to/from std::string,
+// wstring, u8/u16/u38string
+class string {
+private:
+  std::string value_;
+
+public:
+  string() = default;
+  explicit string(const std::string_view sv) : value_(sv) {}
+  explicit string(const char *s) : value_(s) {}
+
+  explicit string(const std::wstring_view ws) : value_(s(ws).value) {}
+
+  explicit string(const std::u8string_view u8s) : value_(s(u8s).value) {}
+  explicit string(const char8_t *u8s)
+      : value_(s(std::u8string_view(u8s)).value) {}
+
+  explicit string(const std::u16string_view u16s) : value_(s(u16s).value) {}
+  explicit string(const std::u32string_view u32s) : value_(s(u32s).value) {}
+
+  explicit operator std::string() const { return value_; }
+  explicit operator std::wstring() const { return ws(value_).value; }
+  explicit operator std::u8string() const { return s_to_u8s(value_); }
+  explicit operator std::u16string() const { return u16s(value_).value; }
+  explicit operator std::u32string() const { return u32s(value_).value; }
+
+  explicit operator std::u8string_view() const {
+    return std::u8string_view(reinterpret_cast<const char8_t *>(value_.data()),
+                              value_.size());
+  }
+  explicit operator std::string_view() const {
+    return std::string_view(value_.data(), value_.size());
+  }
+
+  const std::string &value() const { return value_; }
+  std::string &value() { return value_; }
+
+  size_t size() const { return value_.size(); }
+  bool empty() const { return value_.empty(); }
+
+  const char *data() const { return value_.data(); }
+  char *data() { return value_.data(); }
+
+  const char *c_str() const { return value_.c_str(); }
+};
+
+// wutils::string overloads: it is a UTF-8-backed wrapper, not a
+// std::basic_string instantiation, so it doesn't satisfy BasicStringView and
+// needs dedicated overloads to plug into the conversion functions above.
+inline ConversionResult<std::u8string>
+u8s(const string &from,
+    ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
+  return u8s(from.value(), errorPolicy);
+}
+
+inline ConversionResult<std::u16string>
+u16s(const string &from,
+     ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
+  return u16s(from.value(), errorPolicy);
+}
+
+inline ConversionResult<std::u32string>
+u32s(const string &from,
+     ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
+  return u32s(from.value(), errorPolicy);
+}
+
+inline ConversionResult<ustring>
+us(const string &from,
+   ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
+  return us(from.value(), errorPolicy);
+}
+
+inline ConversionResult<std::wstring>
+ws(const string &from,
+   ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
+  return ws(from.value(), errorPolicy);
+}
+
 } // namespace wutils
