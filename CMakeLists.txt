@@ -1,11 +1,6 @@
 # Minimum CMake version required
 cmake_minimum_required(VERSION 3.28)
 
-# IMPORTANT: Force Ninja generator for C++20 modules
-if(NOT CMAKE_GENERATOR STREQUAL "Ninja")
-    message(FATAL_ERROR "C++20 modules require the Ninja generator. Use: cmake -G Ninja -B build")
-endif()
-
 set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build.")
 
 # Project information
@@ -15,9 +10,6 @@ project(TestWutils CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS ON)
-
-# Scan for modules
-set(CMAKE_CXX_SCAN_FOR_MODULES ON)
 
 # Add compiler-specific flags
 # Do NOT set CMAKE_CXX_FLAGS for modules
@@ -52,22 +44,31 @@ target_sources(wutils
 )
 target_include_directories(wutils PUBLIC include)
 target_compile_definitions(wutils PRIVATE WUTILS_MODULE)
+set_target_properties(wutils PROPERTIES CXX_SCAN_FOR_MODULES ON)
 # DON'T manually set include directories for module outputs
+
+# Plain header-only library: no FILE_SET, no module scanning, builds on any
+# generator. Consumers who don't want/need C++20 modules link against this
+# instead of `wutils`.
+add_library(wutils_header STATIC src/wutils.cpp)
+target_include_directories(wutils_header PUBLIC include)
 
 # Add executable target for module-based build
 add_executable(testwutils_module tests/testwutils.cpp)
 target_link_libraries(testwutils_module PRIVATE wutils doctest)
 target_include_directories(testwutils_module PRIVATE ${doctest_SOURCE_DIR}/doctest)
 target_compile_definitions(testwutils_module PRIVATE WUTILS_MODULE)
+set_target_properties(testwutils_module PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
 # Add executable target for header-only build
-add_executable(testwutils_header tests/testwutils.cpp src/wutils.cpp)
-target_link_libraries(testwutils_header PRIVATE doctest)
-target_include_directories(testwutils_header PRIVATE include ${doctest_SOURCE_DIR}/doctest)
+add_executable(testwutils_header tests/testwutils.cpp)
+target_link_libraries(testwutils_header PRIVATE wutils_header doctest)
+target_include_directories(testwutils_header PRIVATE ${doctest_SOURCE_DIR}/doctest)
 
 add_executable(example examples/example.cpp)
 target_link_libraries(example PRIVATE wutils)
 target_compile_definitions(example PRIVATE WUTILS_MODULE)
+set_target_properties(example PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
 # Enable testing with CTest
 enable_testing()

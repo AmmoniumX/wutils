@@ -67,27 +67,34 @@ tests/             testwutils.cpp (doctest)
 
 #### As a CMake subdirectory
 
-Add this repo as a submodule (or `FetchContent`) and pull in the `wutils` target:
+Add this repo as a submodule (or `FetchContent`) and pull in one of two targets, depending on
+whether you want the C++20 module:
 
-```cmake
-add_subdirectory(wutils)
-target_link_libraries(your_target PRIVATE wutils)
-```
+* `wutils_header` — plain static library, no C++20 modules involved. Builds on any CMake
+  generator.
 
-The `wutils` target already exposes `include/` and compiles `src/wutils.cpp`, so from your code
-you can either:
+  ```cmake
+  add_subdirectory(wutils)
+  target_link_libraries(your_target PRIVATE wutils_header)
+  ```
 
-* Use the C++20 module: define `WUTILS_MODULE` on `your_target` and `import wutils;`, or
-* Use the header directly: `#include <wutils/wutils.hpp>` (no extra define needed — `src/wutils.cpp`
-  is linked in either way via the `wutils` target).
+  ```cpp
+  #include <wutils/wutils.hpp>
+  ```
 
-```cpp
-#ifdef WUTILS_MODULE
-import wutils;
-#else
-#include <wutils/wutils.hpp>
-#endif
-```
+* `wutils` — same implementation, plus the `wutils.cppm` module interface. Requires a
+  modules-capable generator (Ninja, Ninja Multi-Config, or Visual Studio 17.4+ — CMake will error
+  out with a clear message if you configure this target with anything else).
+
+  ```cmake
+  add_subdirectory(wutils)
+  target_link_libraries(your_target PRIVATE wutils)
+  target_compile_definitions(your_target PRIVATE WUTILS_MODULE)
+  ```
+
+  ```cpp
+  import wutils;
+  ```
 
 #### Without CMake
 
