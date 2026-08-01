@@ -15,27 +15,31 @@ using namespace std::string_literals;
 
 struct InputData {
   int width;
-  std::u8string text;
+  std::u8string_view text;
 };
 
-std::array test_data{InputData{13, u8"Hello, World!"},
-                     InputData{6, u8"Résumé"},
-                     InputData{6, u8"😂😂😂"},
-                     InputData{0, u8""},
-                     InputData{2, u8"👩🏼‍🚀"},
-                     InputData{4, u8"𐌀𐌍𐌓𐌀"},
-                     InputData{11, u8"𝕄𝕒𝕥𝕙𝕖𝕞𝕒𝕥𝕚𝕔𝕤"},
-                     InputData{6, u8"🌍🌎🌏"},
-                     InputData{2, u8"👨‍👩‍👧‍👦"},
-                     InputData{10, u8"𠔻𠕋𠖊𠖍𠖐"},
-                     InputData{2, u8"𠮷"},
-                     InputData{6, u8"𠀤𠀧𠁀"},
-                     InputData{4, u8"𠊛好"},
-                     InputData{6, u8"𪚥𪆷𪃹"},
-                     InputData{6, u8"𪜈𪜋𪜌"},
-                     InputData{7, u8"اَلْعَرَبِيَّةُ"},
-                     InputData{0, u8"\x04"},      // End of Transmission (EOT)
-                     InputData{0, u8"\x04\x05"}}; // EOT + Enquiry (ENQ)
+// clang-format off
+constexpr auto test_data = std::to_array<InputData>({
+  {13, u8"Hello, World!"},
+  {6, u8"Résumé"},
+  {6, u8"😂😂😂"},
+  {0, u8""},
+  {2, u8"👩🏼‍🚀"},
+  {4, u8"𐌀𐌍𐌓𐌀"},
+  {11, u8"𝕄𝕒𝕥𝕙𝕖𝕞𝕒𝕥𝕚𝕔𝕤"},
+  {6, u8"🌍🌎🌏"},
+  {2, u8"👨‍👩‍👧‍👦"},
+  {10, u8"𠔻𠕋𠖊𠖍𠖐"},
+  {2, u8"𠮷"},
+  {6, u8"𠀤𠀧𠁀"},
+  {4, u8"𠊛好"},
+  {6, u8"𪚥𪆷𪃹"},
+  {6, u8"𪜈𪜋𪜌"},
+  {7, u8"اَلْعَرَبِيَّةُ"},
+  {0, u8"\x04"},        // End of Transmission (EOT)
+  {0, u8"\x04\x05"}     // EOT + Enquiry (ENQ)
+});
+// clang-format on
 
 TEST_CASE("Width calculation") {
   for (const auto &[width, text] : test_data) {
