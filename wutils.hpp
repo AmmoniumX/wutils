@@ -112,6 +112,33 @@ template <typename From, typename To>
 inline constexpr bool is_implicitly_convertible =
     implicit_conversion<From, To>::value;
 
+// --- Conversion Strategy ---
+// Which code path convert<From, To> should take, derived purely from
+// FromChar/ToChar so the overloads below don't need to repeat this logic.
+enum class ConversionStrategy {
+  Implicit,    // FromChar/ToChar reinterpret or construct directly
+  UnicodeCore, // both are distinct Unicode char types: real transcoding
+  EntryPivot,  // From is non-Unicode (char/wchar_t): recurse via its
+               // Unicode-equivalent pivot type
+  ExitPivot,   // From is Unicode, To is non-Unicode: convert then pivot out
+};
+
+template <typename From, typename To> struct conversion_strategy {
+  static constexpr ConversionStrategy value =
+      is_implicitly_convertible<typename From::value_type,
+                                typename To::value_type>
+          ? ConversionStrategy::Implicit
+      : !is_unicode_char<typename From::value_type>
+          ? ConversionStrategy::EntryPivot
+      : is_unicode_char<typename To::value_type>
+          ? ConversionStrategy::UnicodeCore
+          : ConversionStrategy::ExitPivot;
+};
+
+template <typename From, typename To>
+inline constexpr ConversionStrategy conversion_strategy_v =
+    conversion_strategy<From, To>::value;
+
 template <detail::BasicStringView From, detail::BasicString To>
   requires is_implicitly_convertible<typename From::value_type,
                                      typename To::value_type>
@@ -136,8 +163,8 @@ using detail::UnicodeString, detail::UnicodeStringView;
 
 // OVERLOAD 1: Implicit conversion (fast path).
 template <BasicStringView From, BasicString To>
-  requires(detail::is_implicitly_convertible<typename From::value_type,
-                                             typename To::value_type>)
+  requires(detail::conversion_strategy_v<From, To> ==
+           detail::ConversionStrategy::Implicit)
 inline ConversionResult<To> convert(From from,
                                     [[maybe_unused]] ErrorPolicy errorPolicy =
                                         ErrorPolicy::UseReplacementCharacter) {
@@ -146,8 +173,8 @@ inline ConversionResult<To> convert(From from,
 
 // OVERLOAD 2: The Unicode "core". Both types are different Unicode strings.
 template <UnicodeStringView From, UnicodeString To>
-  requires(!detail::is_implicitly_convertible<typename From::value_type,
-                                              typename To::value_type>)
+  requires(detail::conversion_strategy_v<From, To> ==
+           detail::ConversionStrategy::UnicodeCore)
 inline ConversionResult<To>
 convert(From from,
         ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
@@ -164,9 +191,8 @@ convert(From from,
 // OVERLOAD 3: Entry point. Convert non-Unicode source to a Unicode pivot and
 // recurse.
 template <BasicStringView From, BasicString To>
-  requires(!detail::is_unicode_char<typename From::value_type> &&
-           !detail::is_implicitly_convertible<typename From::value_type,
-                                              typename To::value_type>)
+  requires(detail::conversion_strategy_v<From, To> ==
+           detail::ConversionStrategy::EntryPivot)
 inline ConversionResult<To>
 convert(From from,
         ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
@@ -183,9 +209,8 @@ convert(From from,
 
 // OVERLOAD 4: Exit point. Source is Unicode, destination is not.
 template <UnicodeStringView From, BasicString To>
-  requires(!detail::is_implicitly_convertible<typename From::value_type,
-                                              typename To::value_type> &&
-           !detail::is_unicode_char<typename To::value_type>)
+  requires(detail::conversion_strategy_v<From, To> ==
+           detail::ConversionStrategy::ExitPivot)
 inline ConversionResult<To>
 convert(From from,
         ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
