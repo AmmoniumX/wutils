@@ -54,18 +54,9 @@ If you are using the MSVC compiler on Windows, make sure that you are using the 
 
 -----
 
-### Getting Started
+# Getting Started
 
-The repo is laid out as:
-
-```
-include/wutils/   public API — wutils.hpp, wutils_internal.hpp, wutils.cppm
-src/wutils.cpp     implementation (compile this into your project)
-examples/          example.cpp, a short usage example
-tests/             testwutils.cpp (doctest)
-```
-
-#### As a CMake subdirectory
+## As a CMake subdirectory
 
 Add this repo as a submodule (or `FetchContent`) and pull in one of two targets, depending on
 whether you want the C++20 module:
@@ -96,7 +87,7 @@ whether you want the C++20 module:
   import wutils;
   ```
 
-#### Without CMake
+## Without CMake
 
 Copy `include/wutils/` and `src/wutils.cpp` into your project, add `include/` to your compiler's
 include path, `#include <wutils/wutils.hpp>`, and compile `wutils.cpp` alongside your own
