@@ -24,6 +24,7 @@ template <typename T> struct ConversionResult {
   bool is_valid;
 
   T &operator*() { return value; }
+  const T &operator*() const { return value; }
   T *operator->() { return &value; }
   const T *operator->() const { return &value; }
   explicit operator bool() const { return is_valid; }

@@ -347,6 +347,16 @@ int mk_wcswidth(const char32_t *pwcs, size_t n) {
       p++;
       remaining--;
 
+      // Characters in the Misc Symbols/Dingbats block (0x2600-0x27BF)
+      // default to text presentation (width 1, per mk_wcwidth above)
+      // unless immediately followed by Variation Selector-16, which
+      // explicitly requests emoji presentation and is rendered at width 2
+      // by terminals that honor it.
+      if (base_char >= 0x2600 && base_char <= 0x27BF && char_width == 1 &&
+          remaining > 0 && *p == 0xFE0F) {
+        width += 1;
+      }
+
       // Skip any subsequent ZWJ sequences, skin tone modifiers, etc.
       while (remaining > 0 &&
              (((*p >= 0x1F3FB && *p <= 0x1F3FF) ||   // Skin tone modifiers
@@ -425,7 +435,21 @@ struct DecodeResult {
   bool is_valid;         // Was the sequence valid?
 };
 
+static bool is_utf8_cont(unsigned char b) { return (b & 0xC0) == 0x80; }
+
 // Decodes one character from a UTF-8 stream, with validation.
+//
+// On an ill-formed sequence, consumed_units is the length of its "maximal
+// subpart" per the Unicode Standard's recommended replacement-character
+// substitution algorithm (Unicode 15.0, Ch. 3, D93a / Table 3-7), i.e. the
+// longest prefix of already-consumed bytes that still forms a valid start
+// of some UTF-8 sequence. This matches the behavior of ICU, Python, Rust,
+// Go, and the WHATWG Encoding Standard: a single ill-formed sequence
+// produces exactly one decoding error, not one error per byte that
+// happened to already look like a valid continuation byte. The allowed
+// range for the second byte is narrowed per lead byte (E0/ED, F0/F4) so
+// that overlong and surrogate encodings are rejected at the earliest
+// possible byte, which is what keeps the consumed maximal subpart short.
 DecodeResult decode_one_utf8(std::u8string_view input) {
   if (input.empty()) {
     return {0, 0, false};
@@ -439,52 +463,48 @@ DecodeResult decode_one_utf8(std::u8string_view input) {
 
   if (c < 0xC2) {
     return {0, 1, false};
-  } // Invalid sequence
+  } // Invalid lead byte (stray continuation byte, or overlong C0/C1)
 
   if (c < 0xE0) { // 110xxxxx 10xxxxxx
-    if (input.size() < 2 || (input[1] & 0xC0) != 0x80) {
+    if (input.size() < 2 || !is_utf8_cont(input[1])) {
       return {0, 1, false};
     }
     char32_t cp = ((c & 0x1F) << 6) | (input[1] & 0x3F);
-    if (cp < 0x80) {
-      return {0, 1, false};
-    } // Overlong
     return {cp, 2, true};
   }
 
   if (c < 0xF0) { // 1110xxxx 10xxxxxx 10xxxxxx
-    if (input.size() < 3 || (input[1] & 0xC0) != 0x80 ||
-        (input[2] & 0xC0) != 0x80) {
+    unsigned char lo = (c == 0xE0) ? 0xA0 : 0x80; // avoid overlong
+    unsigned char hi = (c == 0xED) ? 0x9F : 0xBF;  // avoid surrogates
+    if (input.size() < 2 || input[1] < lo || input[1] > hi) {
       return {0, 1, false};
+    }
+    if (input.size() < 3 || !is_utf8_cont(input[2])) {
+      return {0, 2, false};
     }
     char32_t cp =
         ((c & 0x0F) << 12) | ((input[1] & 0x3F) << 6) | (input[2] & 0x3F);
-    if (cp < 0x800) {
-      return {0, 1, false};
-    } // Overlong
-    if (cp >= 0xD800 && cp <= 0xDFFF) {
-      return {0, 1, false};
-    } // Surrogates not allowed
     return {cp, 3, true};
   }
 
   if (c < 0xF5) { // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-    if (input.size() < 4 || (input[1] & 0xC0) != 0x80 ||
-        (input[2] & 0xC0) != 0x80 || (input[3] & 0xC0) != 0x80) {
+    unsigned char lo = (c == 0xF0) ? 0x90 : 0x80; // avoid overlong
+    unsigned char hi = (c == 0xF4) ? 0x8F : 0xBF;  // avoid > U+10FFFF
+    if (input.size() < 2 || input[1] < lo || input[1] > hi) {
       return {0, 1, false};
+    }
+    if (input.size() < 3 || !is_utf8_cont(input[2])) {
+      return {0, 2, false};
+    }
+    if (input.size() < 4 || !is_utf8_cont(input[3])) {
+      return {0, 3, false};
     }
     char32_t cp = ((c & 0x07) << 18) | ((input[1] & 0x3F) << 12) |
                   ((input[2] & 0x3F) << 6) | (input[3] & 0x3F);
-    if (cp < 0x10000) {
-      return {0, 1, false};
-    } // Overlong
-    if (cp > 0x10FFFF) {
-      return {0, 1, false};
-    } // Out of range
     return {cp, 4, true};
   }
 
-  return {0, 1, false}; // Invalid sequence
+  return {0, 1, false}; // Invalid lead byte (F5..FF)
 }
 
 // Decodes one character from a UTF-16 stream, with validation.

@@ -142,6 +142,50 @@ TEST_CASE("Error Handling") {
     }
   }
 
+  SUBCASE("UTF-8 maximal subpart error recovery") {
+    // A lead byte followed by a valid-but-incomplete prefix of continuation
+    // bytes must be substituted as a single error (one replacement
+    // character for the whole ill-formed maximal subpart), matching the
+    // Unicode Standard's recommended replacement algorithm and the
+    // behavior of ICU/Python/Rust/Go/WHATWG decoders - not one error per
+    // already-consumed valid continuation byte.
+    SUBCASE("3-byte sequence, valid prefix then bad 3rd byte") {
+      const char8_t data[] = {0xE0, 0xA0, 'A'};
+      std::u8string invalid_u8(data, sizeof(data) / sizeof(char8_t));
+      auto res = wutils::u32s(invalid_u8,
+                              wutils::ErrorPolicy::UseReplacementCharacter);
+      CHECK_FALSE(res.is_valid);
+      const std::u32string expected =
+          wutils::detail::REPLACEMENT_CHAR_32 + U"A"s;
+      CHECK(res.value == expected);
+    }
+
+    SUBCASE("4-byte sequence, valid prefix then bad 4th byte") {
+      const char8_t data[] = {0xF0, 0x90, 0x80, 'A'};
+      std::u8string invalid_u8(data, sizeof(data) / sizeof(char8_t));
+      auto res = wutils::u32s(invalid_u8,
+                              wutils::ErrorPolicy::UseReplacementCharacter);
+      CHECK_FALSE(res.is_valid);
+      const std::u32string expected =
+          wutils::detail::REPLACEMENT_CHAR_32 + U"A"s;
+      CHECK(res.value == expected);
+    }
+
+    SUBCASE("E0 followed by an out-of-range 2nd byte still yields "
+            "byte-at-a-time errors") {
+      // 0x80 is not in E0's restricted second-byte range (A0-BF), so it
+      // isn't part of a valid maximal subpart at all - each byte is its
+      // own error, same as every reference decoder.
+      const char8_t data[] = {0xE0, 0x80, 0x80};
+      std::u8string invalid_u8(data, sizeof(data) / sizeof(char8_t));
+      auto res = wutils::u32s(invalid_u8,
+                              wutils::ErrorPolicy::UseReplacementCharacter);
+      CHECK_FALSE(res.is_valid);
+      const std::u32string expected(3, wutils::detail::REPLACEMENT_CHAR_32);
+      CHECK(res.value == expected);
+    }
+  }
+
   SUBCASE("Invalid UTF-16 sequences") {
     const char16_t invalid_u16_data[] = {u's',   u't', u'a', u'r', u't', u'_',
                                          0xD800, // Unpaired high surrogate
@@ -208,4 +252,27 @@ TEST_CASE("Width edge cases") {
     digit_with_vs16.push_back(0xFE0F);
     CHECK(wutils::uswidth(digit_with_vs16) == 1);
   }
+
+  SUBCASE("Variation Selector-16 upgrades text-default dingbats to emoji "
+          "presentation width") {
+    // U+2708 AIRPLANE defaults to text presentation (width 1) but Emoji
+    // Presentation Selector (VS-16) requests the width-2 emoji glyph, as
+    // rendered by terminals that honor it.
+    CHECK(wutils::uswidth(std::u32string(1, 0x2708)) == 1);
+    std::u32string airplane_emoji = U"✈";
+    airplane_emoji.push_back(0xFE0F);
+    CHECK(wutils::uswidth(airplane_emoji) == 2);
+
+    // Characters already double-width on their own (e.g. from the
+    // 0x1F000-0x1FAFF block) are unaffected by a trailing VS-16.
+    std::u32string grinning_face_with_vs16 = U"\U0001F600";
+    grinning_face_with_vs16.push_back(0xFE0F);
+    CHECK(wutils::uswidth(grinning_face_with_vs16) == 2);
+  }
+}
+
+TEST_CASE("const ConversionResult can be dereferenced") {
+  const auto res = wutils::u8s(u8"hi"s);
+  REQUIRE(res);
+  CHECK(*res == u8"hi"s);
 }
