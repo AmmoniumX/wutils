@@ -6,7 +6,7 @@
 #ifdef WUTILS_MODULE
 import wutils;
 #else
-#include "wutils.hpp"
+#include "wutils/wutils.hpp"
 #endif
 
 // Define functions that use "safe" UTF encoded string types

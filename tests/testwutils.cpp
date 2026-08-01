@@ -8,7 +8,7 @@
 #ifdef WUTILS_MODULE
 import wutils;
 #else
-#include "wutils.hpp"
+#include "wutils/wutils.hpp"
 #endif
 
 using namespace std::string_literals;

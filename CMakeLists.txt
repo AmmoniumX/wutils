@@ -42,29 +42,30 @@ add_subdirectory(doctest)
 
 # Create a library for the module-based build
 add_library(wutils)
-target_sources(wutils 
-    PUBLIC 
-        FILE_SET cxx_modules 
-        TYPE CXX_MODULES 
-        FILES wutils.cppm
+target_sources(wutils
+    PUBLIC
+        FILE_SET cxx_modules
+        TYPE CXX_MODULES
+        FILES include/wutils/wutils.cppm
     PRIVATE
-        wutils.cpp
+        src/wutils.cpp
 )
+target_include_directories(wutils PUBLIC include)
 target_compile_definitions(wutils PRIVATE WUTILS_MODULE)
 # DON'T manually set include directories for module outputs
 
 # Add executable target for module-based build
-add_executable(testwutils_module testwutils.cpp)
+add_executable(testwutils_module tests/testwutils.cpp)
 target_link_libraries(testwutils_module PRIVATE wutils doctest)
 target_include_directories(testwutils_module PRIVATE ${doctest_SOURCE_DIR}/doctest)
 target_compile_definitions(testwutils_module PRIVATE WUTILS_MODULE)
 
 # Add executable target for header-only build
-add_executable(testwutils_header testwutils.cpp wutils.cpp)
+add_executable(testwutils_header tests/testwutils.cpp src/wutils.cpp)
 target_link_libraries(testwutils_header PRIVATE doctest)
-target_include_directories(testwutils_header PRIVATE ${doctest_SOURCE_DIR}/doctest)
+target_include_directories(testwutils_header PRIVATE include ${doctest_SOURCE_DIR}/doctest)
 
-add_executable(example example.cpp)
+add_executable(example examples/example.cpp)
 target_link_libraries(example PRIVATE wutils)
 target_compile_definitions(example PRIVATE WUTILS_MODULE)
 

@@ -56,8 +56,44 @@ If you are using the MSVC compiler on Windows, make sure that you are using the 
 
 ### Getting Started
 
-To use the library, simply add `wutils.hpp` and `wutils.cpp` to your project, and add them to your compilation steps.
+The repo is laid out as:
 
-For code examples, see `example.cpp`.
+```
+include/wutils/   public API — wutils.hpp, wutils_internal.hpp, wutils.cppm
+src/wutils.cpp     implementation (compile this into your project)
+examples/          example.cpp, a short usage example
+tests/             testwutils.cpp (doctest)
+```
 
-For building examples, see the `CMakeLists.txt` file, or example Makefiles `Makefile.exmample` (GNU Make) and `Makefile.vc.example` (MSVC nmake.exe)
+#### As a CMake subdirectory
+
+Add this repo as a submodule (or `FetchContent`) and pull in the `wutils` target:
+
+```cmake
+add_subdirectory(wutils)
+target_link_libraries(your_target PRIVATE wutils)
+```
+
+The `wutils` target already exposes `include/` and compiles `src/wutils.cpp`, so from your code
+you can either:
+
+* Use the C++20 module: define `WUTILS_MODULE` on `your_target` and `import wutils;`, or
+* Use the header directly: `#include <wutils/wutils.hpp>` (no extra define needed — `src/wutils.cpp`
+  is linked in either way via the `wutils` target).
+
+```cpp
+#ifdef WUTILS_MODULE
+import wutils;
+#else
+#include <wutils/wutils.hpp>
+#endif
+```
+
+#### Without CMake
+
+Copy `include/wutils/` and `src/wutils.cpp` into your project, add `include/` to your compiler's
+include path, `#include <wutils/wutils.hpp>`, and compile `wutils.cpp` alongside your own
+sources.
+
+For a short usage example, see `examples/example.cpp`. For full API coverage, see
+`tests/testwutils.cpp`.

@@ -74,7 +74,7 @@
 #include <string>
 #include <string_view>
 
-#include "wutils_internal.hpp"
+#include "wutils/wutils_internal.hpp"
 #ifdef _WIN32
 #include <Windows.h>
 #endif
