@@ -283,12 +283,12 @@ int mk_wcwidth(char32_t ucs) {
       {0x1D185, 0x1D18B},
       {0x1D1AA, 0x1D1AD},
       {0x1D242, 0x1D244},
+      {0x1F3FB, 0x1F3FF}, // Emoji skin tone modifiers
       {0xE0001, 0xE0001},
       {0xE0020, 0xE007F},
       {0xE0100, 0xE01EF},
-      /* Add emoji modifiers */
-      {0x1F3FB, 0x1F3FF}, // Emoji skin tone modifiers
-      {0x200D, 0x200D}    // Zero Width Joiner
+      // Note: Zero Width Joiner (0x200D) is already covered by the
+      // {0x200B, 0x200F} entry above, so it needs no separate entry.
   };
 
   /* test for 8-bit control characters */
@@ -329,7 +329,7 @@ int mk_wcswidth(const char32_t *pwcs, size_t n) {
   const char32_t *p = pwcs;
   size_t remaining = n;
 
-  while (*p && remaining > 0) {
+  while (remaining > 0) {
     char32_t base_char = *p;
     int char_width = mk_wcwidth(base_char);
 
@@ -348,7 +348,7 @@ int mk_wcswidth(const char32_t *pwcs, size_t n) {
       remaining--;
 
       // Skip any subsequent ZWJ sequences, skin tone modifiers, etc.
-      while (remaining > 0 && *p &&
+      while (remaining > 0 &&
              (((*p >= 0x1F3FB && *p <= 0x1F3FF) ||   // Skin tone modifiers
                (*p == 0x200D) ||                     // Zero Width Joiner
                (*p == 0xFE0F) ||                     // Variation Selector-16
@@ -356,12 +356,12 @@ int mk_wcswidth(const char32_t *pwcs, size_t n) {
 
         // If we hit a ZWJ followed by another emoji, don't count the
         // joined emoji's width
-        if (*p == 0x200D && remaining > 1 && *(p + 1)) {
+        if (*p == 0x200D && remaining > 1) {
           p++; // Skip the ZWJ
           remaining--;
 
           // Skip the next emoji too (but don't add its width)
-          if (remaining > 0 && *p) {
+          if (remaining > 0) {
             // Check if it's an emoji
             if ((*p >= 0x1F000 && *p <= 0x1FAFF) ||
                 (*p >= 0x2600 && *p <= 0x27BF)) {

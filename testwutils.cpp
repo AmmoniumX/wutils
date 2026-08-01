@@ -178,3 +178,34 @@ TEST_CASE("Error Handling") {
     }
   }
 }
+
+TEST_CASE("Width edge cases") {
+  SUBCASE("Embedded NUL does not truncate the width scan") {
+    // std::u32string is length-prefixed and may legally contain an embedded
+    // NUL codepoint; the scan must be bounded by length, not by NUL.
+    const char32_t data[] = {U'a', U'b', 0, U'c', U'd'};
+    std::u32string s(data, sizeof(data) / sizeof(char32_t));
+    CHECK(wutils::uswidth(s) == 4);
+  }
+
+  SUBCASE("Combining/format characters above U+200D are zero-width") {
+    // These codepoints previously fell past the (broken) bisearch table's
+    // upper-bound guard and were misreported as width 1 or 2.
+    CHECK(wutils::uswidth(std::u32string(1, 0x20D0)) ==
+          0); // COMBINING LEFT HARPOON ABOVE
+    CHECK(wutils::uswidth(std::u32string(1, 0xFEFF)) ==
+          0); // ZERO WIDTH NO-BREAK SPACE
+    CHECK(wutils::uswidth(std::u32string(1, 0xFE0F)) ==
+          0); // VARIATION SELECTOR-16
+    CHECK(wutils::uswidth(std::u32string(1, 0x1F3FB)) ==
+          0); // standalone skin tone modifier
+
+    std::u32string e_with_combining = U"e";
+    e_with_combining.push_back(0x20D0);
+    CHECK(wutils::uswidth(e_with_combining) == 1);
+
+    std::u32string digit_with_vs16 = U"1";
+    digit_with_vs16.push_back(0xFE0F);
+    CHECK(wutils::uswidth(digit_with_vs16) == 1);
+  }
+}

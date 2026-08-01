@@ -35,6 +35,9 @@ using ::wutils::detail::BasicStringView;
 
 } // namespace detail
 
+using ::wutils::UnicodeString;
+using ::wutils::UnicodeStringView;
+
 using detail::BasicString, detail::BasicStringView;
 
 using ::wutils::convert;
