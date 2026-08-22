@@ -30,15 +30,15 @@ using ::wutils::detail::REPLACEMENT_CHAR_16;
 using ::wutils::detail::REPLACEMENT_CHAR_32;
 using ::wutils::detail::REPLACEMENT_CHAR_8;
 
-using ::wutils::detail::BasicString;
-using ::wutils::detail::BasicStringView;
+using ::wutils::detail::StringLike;
+using ::wutils::detail::StringViewLike;
 
 } // namespace detail
 
 using ::wutils::UnicodeString;
 using ::wutils::UnicodeStringView;
 
-using detail::BasicString, detail::BasicStringView;
+using detail::StringLike, detail::StringViewLike;
 
 using ::wutils::convert;
 using ::wutils::s_to_u8s;

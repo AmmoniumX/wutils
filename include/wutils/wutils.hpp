@@ -74,25 +74,28 @@ concept instantiation_of = detail::instantiation_of_impl<T, C>::value;
 template <typename T, template <typename...> class... Cs>
 concept instantiation_of_one_of = (... or instantiation_of<T, Cs>);
 
-template <typename T>
-concept is_unicode_char =
-    std::is_same_v<T, char8_t> || std::is_same_v<T, char16_t> ||
-    std::is_same_v<T, char32_t>;
+template <typename T, typename... Args>
+concept is_one_of = (... or std::is_same_v<T, Args>);
 
 template <typename T>
-concept BasicString = instantiation_of<T, std::basic_string>;
+concept is_unicode_char = is_one_of<T, char8_t, char16_t, char32_t>;
 
+/* An owning string */
 template <typename T>
-concept BasicStringView =
+concept StringLike = instantiation_of<T, std::basic_string>;
+
+/* A viewable string, potentially owning or non-owning */
+template <typename T>
+concept StringViewLike =
     instantiation_of_one_of<T, std::basic_string, std::basic_string_view>;
 
 template <typename T>
 concept UnicodeString =
-    BasicString<T> && is_unicode_char<typename T::value_type>;
+    StringLike<T> && is_unicode_char<typename T::value_type>;
 
 template <typename T>
 concept UnicodeStringView =
-    BasicStringView<T> && is_unicode_char<typename T::value_type>;
+    StringViewLike<T> && is_unicode_char<typename T::value_type>;
 
 // ===== Implicit Conversions =====
 template <typename FromChar, typename ToChar>
@@ -139,7 +142,7 @@ template <typename From, typename To>
 inline constexpr ConversionStrategy conversion_strategy_v =
     conversion_strategy<From, To>::value;
 
-template <detail::BasicStringView From, detail::BasicString To>
+template <detail::StringViewLike From, detail::StringLike To>
   requires is_implicitly_convertible<typename From::value_type,
                                      typename To::value_type>
 To convert_implicitly(From from) {
@@ -156,13 +159,13 @@ To convert_implicitly(From from) {
 };
 
 } // namespace detail
-using detail::BasicString, detail::BasicStringView;
+using detail::StringLike, detail::StringViewLike;
 using detail::UnicodeString, detail::UnicodeStringView;
 
 // "Dispatch" our functions based on conversion type //
 
 // OVERLOAD 1: Implicit conversion (fast path).
-template <BasicStringView From, BasicString To>
+template <StringViewLike From, StringLike To>
   requires(detail::conversion_strategy_v<From, To> ==
            detail::ConversionStrategy::Implicit)
 inline ConversionResult<To> convert(From from,
@@ -190,7 +193,7 @@ convert(From from,
 
 // OVERLOAD 3: Entry point. Convert non-Unicode source to a Unicode pivot and
 // recurse.
-template <BasicStringView From, BasicString To>
+template <StringViewLike From, StringLike To>
   requires(detail::conversion_strategy_v<From, To> ==
            detail::ConversionStrategy::EntryPivot)
 inline ConversionResult<To>
@@ -208,7 +211,7 @@ convert(From from,
 }
 
 // OVERLOAD 4: Exit point. Source is Unicode, destination is not.
-template <UnicodeStringView From, BasicString To>
+template <UnicodeStringView From, StringLike To>
   requires(detail::conversion_strategy_v<From, To> ==
            detail::ConversionStrategy::ExitPivot)
 inline ConversionResult<To>
@@ -247,39 +250,39 @@ inline std::string u8s_to_s(std::u8string_view from) {
 }
 
 // "Advanced" conversions that require ConversionResult
-template <BasicStringView From>
+template <StringViewLike From>
 inline ConversionResult<std::u8string>
 u8s(From from, ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
   return convert<From, std::u8string>(from, errorPolicy);
 }
 
-template <BasicStringView From>
+template <StringViewLike From>
 inline ConversionResult<std::u16string>
 u16s(From from,
      ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
   return convert<From, std::u16string>(from, errorPolicy);
 }
 
-template <BasicStringView From>
+template <StringViewLike From>
 inline ConversionResult<std::u32string>
 u32s(From from,
      ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
   return convert<From, std::u32string>(from, errorPolicy);
 }
 
-template <BasicStringView From>
+template <StringViewLike From>
 inline ConversionResult<ustring>
 us(From from, ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
   return convert<From, ustring>(from, errorPolicy);
 }
 
-template <BasicStringView From>
+template <StringViewLike From>
 inline ConversionResult<std::wstring>
 ws(From from, ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
   return convert<From, std::wstring>(from, errorPolicy);
 }
 
-template <BasicStringView From>
+template <StringViewLike From>
 inline ConversionResult<std::string>
 s(From from, ErrorPolicy errorPolicy = ErrorPolicy::UseReplacementCharacter) {
   return convert<From, std::string>(from, errorPolicy);
@@ -337,7 +340,7 @@ public:
 };
 
 // wutils::string overloads: it is a UTF-8-backed wrapper, not a
-// std::basic_string instantiation, so it doesn't satisfy BasicStringView and
+// std::basic_string instantiation, so it doesn't satisfy StringViewLike and
 // needs dedicated overloads to plug into the conversion functions above.
 inline ConversionResult<std::u8string>
 u8s(const string &from,
