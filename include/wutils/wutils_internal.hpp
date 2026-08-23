@@ -1,6 +1,6 @@
-#include <iostream>
 #include <string>
 #include <string_view>
+#include <uchar.h>
 
 namespace wutils {
 
@@ -38,7 +38,7 @@ template <typename T> struct ConversionResult {
 };
 namespace detail {
 
-constexpr inline const char8_t *REPLACEMENT_CHAR_8 = u8"�";
+constexpr inline const char8_t REPLACEMENT_CHAR_8[] = u8"�";
 constexpr inline const char16_t REPLACEMENT_CHAR_16 = u'�';
 constexpr inline const char32_t REPLACEMENT_CHAR_32 = U'�';
 

@@ -6,6 +6,9 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#ifndef _WIN32
+#include <iostream>
+#endif
 
 #include "wutils_internal.hpp"
 
